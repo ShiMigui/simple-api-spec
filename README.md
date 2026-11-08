@@ -1,5 +1,7 @@
 # Simple API (SAS)
 
+[![CI](https://github.com/ShiMigui/simple-api-spec/actions/workflows/ci.yml/badge.svg)](https://github.com/ShiMigui/simple-api-spec/actions/workflows/ci.yml)
+
 Small command-line tool for making HTTP requests during development and manual
 API testing. Written in Go, with no external dependencies, it works on Linux,
 macOS, and Windows.
