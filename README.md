@@ -1,35 +1,35 @@
 # Simple API (SAS)
 
-Ferramenta de linha de comando pequena para fazer requisições HTTP durante o
-desenvolvimento e os testes manuais de APIs. Escrita em Go, sem dependências
-externas, funciona em Linux, macOS e Windows.
+Small command-line tool for making HTTP requests during development and manual
+API testing. Written in Go, with no external dependencies, it works on Linux,
+macOS, and Windows.
 
-O objetivo é reduzir a repetição de comandos `curl`, permitir reutilizar
-configurações por variáveis de ambiente e manter uma implementação simples,
-legível e multiplataforma.
+The goal is to reduce repetition of `curl` commands, allow reusing
+configuration via environment variables, and keep an implementation that is
+simple, readable, and cross-platform.
 
-## Instalação
+## Installation
 
 ```bash
 go install github.com/ShiMigui/simple-api-spec/cmd/sas@latest
 ```
 
-Ou, a partir do código:
+Or, from the source code:
 
 ```bash
 go build -o sas ./cmd/sas
 ```
 
-## Uso
+## Usage
 
-Dois formatos equivalentes, ambos sobre o mesmo núcleo:
+Two equivalent formats, both on the same core:
 
 ```text
-sas METHOD URL [opções]
-sas-METHOD URL [opções]
+sas METHOD URL [options]
+sas-METHOD URL [options]
 ```
 
-Exemplos:
+Examples:
 
 ```bash
 sas get /health
@@ -37,123 +37,123 @@ sas post /users -t application/json -b '{"name":"Ana"}'
 sas patch /users/42 -t application/json -b '{"active":false}'
 sas delete /users/42
 
-# Mesmo fluxo através do nome do executável (symlink ou cópia no Windows):
+# Same flow through the executable name (symlink or copy on Windows):
 sas-post /users -t application/json -b '{"name":"Ana"}'
 ```
 
-Métodos do MVP: `GET`, `POST`, `PUT`, `PATCH` e `DELETE`.
+MVP methods: `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`.
 
-### Opções
+### Options
 
 ```text
--b, --body VALUE            corpo literal da requisição
--H, --header "Name: value"  header adicional; pode ser repetido
--t, --content-type TYPE     Content-Type do corpo
--h, --help                  ajuda
-    --version               versão
+-b, --body VALUE            literal request body
+-H, --header "Name: value"  additional header; can be repeated
+-t, --content-type TYPE     body Content-Type
+-h, --help                  help
+    --version               version
 ```
 
-O corpo informado em `-b` é tratado como bytes literais: nunca é interpretado,
-corrigido ou reformatado como JSON.
+The body provided in `-b` is treated as literal bytes: it is never interpreted,
+corrected, or reformatted as JSON.
 
-## Variáveis de ambiente
+## Environment variables
 
-| Variável            | Uso                                                  |
+| Variable            | Usage                                                |
 | ------------------- | ---------------------------------------------------- |
-| `API_BASE_URL`      | URL base para endpoints relativos                    |
-| `API_BEARER_TOKEN`  | enviado como `Authorization: Bearer <token>`         |
-| `API_CONTENT_TYPE`  | `Content-Type` padrão                                |
-| `API_ACCEPT`        | valor padrão de `Accept`                             |
-| `API_TIMEOUT`       | timeout da requisição, por exemplo `30s` (padrão 30s)|
-| `API_VERBOSE`       | ativa logs detalhados                                |
+| `API_BASE_URL`      | Base URL for relative endpoints                      |
+| `API_BEARER_TOKEN`  | sent as `Authorization: Bearer <token>`              |
+| `API_CONTENT_TYPE`  | default `Content-Type`                               |
+| `API_ACCEPT`        | default `Accept` value                               |
+| `API_TIMEOUT`       | request timeout, for example `30s` (default 30s)     |
+| `API_VERBOSE`       | enables verbose logs                                 |
 
-Toda a leitura de ambiente fica isolada em `internal/config`; nenhum outro
-pacote chama `os.Getenv`.
+All environment reading is isolated in `internal/config`; no other package
+calls `os.Getenv`.
 
-### Precedência
+### Precedence
 
-Resolvida em um único ponto (`config.Resolve`):
+Resolved at a single point (`config.Resolve`):
 
 ```text
-opção de CLI  >  variável de ambiente  >  valor padrão
+CLI option  >  environment variable  >  default value
 ```
 
-Regras específicas:
+Specific rules:
 
-- `-t` prevalece sobre `API_CONTENT_TYPE`.
-- Um header explícito `-H` prevalece sobre valores automáticos
-  (`API_ACCEPT`, `API_BEARER_TOKEN` e `Content-Type` padrão).
-- Usar `-t` junto de `-H 'Content-Type: ...'` é rejeitado como ambíguo.
+- `-t` takes precedence over `API_CONTENT_TYPE`.
+- An explicit `-H` header takes precedence over automatic values
+  (`API_ACCEPT`, `API_BEARER_TOKEN`, and the default `Content-Type`).
+- Using `-t` together with `-H 'Content-Type: ...'` is rejected as ambiguous.
 
-## Resolução de URL
+## URL resolution
 
-- URLs absolutas `http://` e `https://` são usadas diretamente.
-- Endpoints relativos exigem `API_BASE_URL`; sua ausência é um erro claro.
-- O endpoint é **anexado** ao caminho base (comportamento explícito, diferente
-  da resolução tradicional que substituiria o caminho).
-- Barras inicial/final são normalizadas; o caminho-base é preservado.
-- Query strings são preservadas; fragmentos não são enviados.
+- Absolute URLs `http://` and `https://` are used directly.
+- Relative endpoints require `API_BASE_URL`; its absence is a clear error.
+- The endpoint is **appended** to the base path (explicit behavior, unlike
+  traditional resolution, which would replace the path).
+- Leading/trailing slashes are normalized; the base path is preserved.
+- Query strings are preserved; fragments are not sent.
 
-Exemplos:
+Examples:
 
 ```text
 base https://host/api/v1  +  /users          -> https://host/api/v1/users
 base http://host:8080/api/ +  users          -> http://host:8080/api/users
-URL absoluta https://example.com/api/users   -> usada como está
+absolute URL https://example.com/api/users   -> used as is
 ```
 
-## Saída e códigos de retorno
+## Output and exit codes
 
-- O **corpo** da resposta vai para `stdout`, sem formatação automática.
-- Diagnósticos e erros vão para `stderr`.
+- The response **body** goes to `stdout`, without automatic formatting.
+- Diagnostics and errors go to `stderr`.
 
-Assim, o redirecionamento funciona sem poluição:
+This way, redirection works without pollution:
 
 ```bash
-sas get /users > users.json   # users.json contém apenas o corpo
+sas get /users > users.json   # users.json contains only the body
 ```
 
-Códigos de saída:
+Exit codes:
 
-| Código | Significado                                  |
+| Code   | Meaning                                      |
 | ------ | -------------------------------------------- |
-| `0`    | resposta HTTP de sucesso (`2xx`)             |
-| `1`    | erro de transporte ou de configuração        |
-| `2`    | argumentos/opções inválidos                  |
-| `3`    | resposta HTTP não bem-sucedida (`4xx`/`5xx`) |
+| `0`    | successful HTTP response (`2xx`)             |
+| `1`    | transport or configuration error             |
+| `2`    | invalid arguments/options                    |
+| `3`    | unsuccessful HTTP response (`4xx`/`5xx`)     |
 
-Em respostas não bem-sucedidas o corpo ainda é escrito em `stdout` e o status
-é reportado em `stderr`.
+For unsuccessful responses, the body is still written to `stdout` and the
+status is reported on `stderr`.
 
-## Segurança
+## Security
 
-- Tokens e credenciais nunca são impressos em logs, erros ou no modo verbose.
-- Headers são validados (`Nome: valor`); CR/LF e caracteres inválidos são
-  rejeitados para evitar injeção.
-- A validação TLS permanece ativa.
-- Uma requisição é redirecionada no máximo 10 vezes; credenciais não são
-  propagadas para hosts diferentes em redirecionamentos.
+- Tokens and credentials are never printed in logs, errors, or verbose mode.
+- Headers are validated (`Name: value`); CR/LF and invalid characters are
+  rejected to prevent injection.
+- TLS verification remains enabled.
+- A request is redirected at most 10 times; credentials are not
+  propagated to different hosts on redirects.
 
-## Estrutura do projeto
+## Project structure
 
 ```text
-cmd/sas/main.go          ponto de entrada; converte o resultado em código de saída
-internal/apperr          classificação de erros -> códigos de saída
-internal/cli             parsing de argumentos (um único Options para todos os formatos)
-internal/config          leitura e resolução de ambiente (env.go, config.go)
-internal/request         resolução de URL, headers, corpo e cliente HTTP
-internal/response        escrita do corpo e diagnósticos nos streams corretos
+cmd/sas/main.go          entry point; converts the result into an exit code
+internal/apperr          error classification -> exit codes
+internal/cli             argument parsing (a single Options for all formats)
+internal/config          environment reading and resolution (env.go, config.go)
+internal/request         URL resolution, headers, body, and HTTP client
+internal/response        writing the body and diagnostics to the correct streams
 ```
 
-Todos os métodos e formatos de invocação convergem para o mesmo fluxo HTTP.
+All methods and invocation formats converge on the same HTTP flow.
 
-## Testes
+## Tests
 
 ```bash
 go test ./...
 go test -race ./...
 ```
 
-Os testes usam `net/http/httptest`, sem dependência de APIs externas, e cobrem
-resolução de URL, precedência de configuração, headers, corpo, timeout,
-redirecionamentos, separação de streams e códigos de saída.
+The tests use `net/http/httptest`, with no dependency on external APIs, and cover
+URL resolution, configuration precedence, headers, body, timeout,
+redirects, stream separation, and exit codes.
